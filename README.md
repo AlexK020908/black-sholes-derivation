@@ -13,7 +13,7 @@ $$X_n = X_0 + \sum_{i=1}^{n} Z_i$$
 
 where each $Z_i$ is an independent random variable:
 
-$$Z_i = \begin{cases} +1 & \text{with probability } \frac{1}{2} \\[4pt] -1 & \text{with probability } \frac{1}{2} \end{cases}$$
+$$Z_i = \begin{cases} +1 & \text{with probability } \frac{1}{2} \\ -1 & \text{with probability } \frac{1}{2} \end{cases}$$
 
 **Key properties:**
 
@@ -26,7 +26,7 @@ $$Z_i = \begin{cases} +1 & \text{with probability } \frac{1}{2} \\[4pt] -1 & \te
 
 Now generalize. Instead of fair $\pm 1$ steps, let:
 
-$$Z_i = \begin{cases} +u & \text{with probability } p \\[4pt] -d & \text{with probability } 1 - p \end{cases}$$
+$$Z_i = \begin{cases} +u & \text{with probability } p \\ -d & \text{with probability } 1 - p \end{cases}$$
 
 Now $E[Z_i] = pu - (1-p)d \neq 0$ in general. The walk has **drift**.
 
