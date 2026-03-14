@@ -613,45 +613,20 @@ $$V(S, T) = \max(S - K, \, 0)$$
 
 This is the **boundary condition** for our PDE — we know $V$ at the end, and we want to work backwards to find $V$ at earlier times.
 
-### 7.2 Transformation to the Heat Equation
+### 7.2 Solving the PDE
 
-The Black-Scholes PDE has variable coefficients (the $S^2$ multiplying $V_{SS}$). We transform it to the standard heat equation.
+**What we have:** The Black-Scholes PDE from Part 6:
 
-**Step A: Log-coordinates and reverse time.**
+$$\frac{\partial V}{\partial t} + \frac{1}{2}\sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} + rS\frac{\partial V}{\partial S} - rV = 0$$
 
-Let:
+| | Description |
+|---|---|
+| **Unknown** | $V(S, t)$ — the option price as a function of stock price and time |
+| **Known inputs** | $\sigma$ (volatility), $r$ (risk-free rate), $K$ (strike price), $T$ (expiry) |
+| **Boundary condition** | $V(S, T) = \max(S - K, \, 0)$ — we know the answer at expiry |
+| **What we're solving for** | $V(S, t)$ for any $t < T$ — what is the option worth *before* expiry? |
 
-$$x = \ln(S/K), \qquad \tau = \frac{1}{2}\sigma^2(T - t), \qquad V(S, t) = K \cdot v(x, \tau)$$
-
-After computing all partial derivatives via chain rule and substituting into the PDE:
-
-$$\frac{\partial v}{\partial \tau} = \frac{\partial^2 v}{\partial x^2} + (k - 1)\frac{\partial v}{\partial x} - kv$$
-
-where $k = \frac{2r}{\sigma^2}$.
-
-**Step B: Remove the lower-order terms.**
-
-Let:
-
-$$v(x, \tau) = e^{\alpha x + \beta \tau} \, u(x, \tau)$$
-
-Choosing:
-
-$$\alpha = -\frac{1}{2}(k - 1), \qquad \beta = -\frac{1}{4}(k + 1)^2$$
-
-all first-order and zeroth-order terms cancel, leaving:
-
-$$\frac{\partial u}{\partial \tau} = \frac{\partial^2 u}{\partial x^2}$$
-
-**This is the heat equation** — the most classical PDE in mathematics.
-
-### 7.3 Solving with the Gaussian Kernel
-
-The heat equation with initial condition $u(x, 0) = u_0(x)$ has the solution:
-
-$$u(x, \tau) = \frac{1}{2\sqrt{\pi \tau}} \int_{-\infty}^{\infty} u_0(y) \, e^{-(x - y)^2 / (4\tau)} \, dy$$
-
-After computing this integral (it splits into two Gaussian integrals that evaluate to standard normal CDFs) and undoing all substitutions, we get:
+**How it gets solved:** Through a sequence of variable substitutions ($x = \ln(S/K)$, time reversal, and an exponential change of variables), this PDE transforms into the **heat equation** $\frac{\partial u}{\partial \tau} = \frac{\partial^2 u}{\partial x^2}$ — one of the most well-studied equations in mathematics with a known closed-form solution. The algebra is mechanical but lengthy; any CAS (Wolfram Alpha, SymPy, Mathematica) can verify each step. What matters is the result:
 
 $$\boxed{C(S, t) = S \, N(d_1) - K e^{-r(T-t)} N(d_2)}$$
 
@@ -729,3 +704,95 @@ Part 7: Transform PDE to heat equation → solve
    ▼
 Black-Scholes Formula: C = S·N(d₁) - Ke^{-r(T-t)}·N(d₂)
 ```
+
+---
+
+## Part 10: Application — Binary Options on Crypto Markets
+
+This is where Black-Scholes directly applies to platforms like Polymarket. You have an actual underlying asset (crypto price) and you're betting on up/down. That's a binary option.
+
+### 10.1 Setup
+
+- Crypto price $S_t$ follows (approximately) GBM: $dS_t = \mu S_t\,dt + \sigma S_t\,dB_t$
+- Contract pays \$1 if price goes **up** after 15 minutes, \$0 if down
+- Strike $K$ = current price $S$ (the "will it be higher than now?" question)
+
+### 10.2 The Formula
+
+From the Black-Scholes framework, a binary option that pays \$1 if $S_T > K$ is worth:
+
+$$\text{Price} = N(d_2)$$
+
+(We drop the $e^{-r(T-t)}$ discount because 15 minutes of interest is basically zero.)
+
+With $K = S$ (betting on up from current price), $\ln(S/K) = \ln(1) = 0$, so:
+
+$$d_2 = \frac{0 + (r - \frac{\sigma^2}{2})(T-t)}{\sigma\sqrt{T-t}}$$
+
+Drop $r$ (irrelevant over 15 minutes):
+
+$$d_2 = \frac{-\frac{\sigma^2}{2}(T-t)}{\sigma\sqrt{T-t}} = -\frac{\sigma\sqrt{T-t}}{2}$$
+
+So:
+
+$$\boxed{P(\text{up}) = N\!\left(-\frac{\sigma\sqrt{T-t}}{2}\right)}$$
+
+### 10.3 Plugging In Real Numbers
+
+Bitcoin annualized volatility is roughly 50–80%. Let's use $\sigma = 0.60$ (60%).
+
+15 minutes in years: $T - t = \frac{15}{525600} \approx 0.0000285$
+
+$$\sigma\sqrt{T-t} = 0.60 \times \sqrt{0.0000285} = 0.60 \times 0.00534 = 0.0032$$
+
+$$d_2 = -0.0032 / 2 = -0.0016$$
+
+$$P(\text{up}) = N(-0.0016) \approx 0.4994$$
+
+Basically 50/50. That makes sense — over 15 minutes with no drift, GBM says the price is roughly equally likely to go up or down.
+
+### 10.4 So the Formula Is Useless?
+
+For the **basic** up/down question with no other information, yes — it's essentially a coin flip. But here's where it gets interesting.
+
+### 10.5 Where You Actually Get an Edge
+
+**1. Volatility ($\sigma$) is not constant — and this is your main lever.**
+
+If the platform prices contracts assuming some fixed $\sigma$, but you can estimate $\sigma$ better in real-time, you have an edge. During a quiet Sunday morning, $\sigma$ is low. Right before a Fed announcement or a big crypto event, $\sigma$ spikes.
+
+Higher $\sigma$ doesn't change $P(\text{up})$ much for at-the-money bets, but it matters enormously for **threshold bets** like "will BTC go up by more than 1%?"
+
+$$P(S_T > 1.01 \cdot S) = N\!\left(\frac{\ln(1/1.01) - \frac{\sigma^2}{2}(T-t)}{\sigma\sqrt{T-t}}\right)$$
+
+$$= N\!\left(\frac{-0.00995 - \frac{\sigma^2}{2}(T-t)}{\sigma\sqrt{T-t}}\right)$$
+
+With $\sigma = 0.60$: $P \approx N(-3.13) \approx 0.09\%$
+
+With $\sigma = 1.50$ (during a crash): $P \approx N(-1.25) \approx 10.6\%$
+
+If the platform is still pricing at 0.09% but vol has spiked to 1.50, you buy at \$0.009 something worth \$0.106. That's a huge edge.
+
+**2. Drift ($\mu$) matters over short horizons if momentum exists.**
+
+The Black-Scholes formula killed $\mu$ through hedging. But **you're not hedging** — you're just betting. So if you detect momentum ($\mu \neq 0$), the true formula is:
+
+$$P(\text{up}) = N\!\left(\frac{(\mu - \frac{\sigma^2}{2})(T-t)}{\sigma\sqrt{T-t}}\right) = N\!\left(\frac{\mu\sqrt{T-t}}{\sigma} - \frac{\sigma\sqrt{T-t}}{2}\right)$$
+
+If you have a momentum signal that gives you $\mu = 5.0$ (annualized, meaning crypto is trending upward right now):
+
+$$\frac{\mu\sqrt{T-t}}{\sigma} = \frac{5.0 \times 0.00534}{0.60} = 0.045$$
+
+$$P(\text{up}) = N(0.045 - 0.0016) = N(0.043) \approx 51.7\%$$
+
+If the market prices at 50% and the true probability is 51.7%, you have a 1.7% edge per trade. Over hundreds of trades, that compounds.
+
+### 10.6 Practical Playbook
+
+| What to estimate | How | Why it matters |
+|---|---|---|
+| $\sigma$ (volatility) | Recent 1-hour rolling standard deviation of log returns, annualized | Determines how far price can move in 15 min |
+| $\mu$ (drift/momentum) | Short-term trend signal (moving averages, order flow) | Shifts the up/down probability away from 50% |
+| Compare to market price | Your $N(d_2)$ vs what the platform offers | The gap is your edge |
+
+The stochastic calculus you learned gives you the framework. The money comes from estimating $\sigma$ and $\mu$ better than the market in real-time.
