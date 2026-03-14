@@ -1,5 +1,4 @@
-# From Random Walks to Black-Scholes: A Complete Derivation (v2)
-
+# From Random Walks to Black-Scholes: A Complete Derivation
 ---
 
 ## Part 1: The Discrete World — Random Walks
